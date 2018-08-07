@@ -45,9 +45,9 @@ Run the second script with the command aip-finish_script source-directory depart
    2. Download the "aip-workflowdocs" folder with the scripts, stylesheets, and other files needed for the workflow from GitHub and save to your computer.
    3. Update the filepath variables in the aip-finish script (lines 25-27) to the location of the aip-workflowdocs folder, FITS, and Saxon on your computer.
    4. Update the base-uri in the stylesheets and DTD to the base for your identifiers:
-	-fits-to-master_singlefile.xsl: in variable name="uri" (line 57)
-	-fits-to-master_multifile.xsl: in variable name="uri" (line 53)
-	-premis.xsd: in the restriction pattern for objectIdentifierType (line 42)
+       1. fits-to-master_singlefile.xsl: in variable name="uri" (line 57)
+       2. fits-to-master_multifile.xsl: in variable name="uri" (line 53)
+       3. premis.xsd: in the restriction pattern for objectIdentifierType (line 42)
    5. Change permission on the scripts so they are executable.
 
 # Known Issue:
