@@ -17,10 +17,9 @@
    # Add optional metadata files to the metadata subfolders
    # If this is the first time using these scripts on this computer, update the filepath variables
 
-VERSION=2.1
-# changes: updated terminology from proto-aip (local term we used to describe AIPs in the process of being made) to AIP (standard term) and replaced absolute filepaths with variables to make it easier to run the script on other machines.
-
-#Filepath variables: give the absolute filepath for FITs, Saxon, and the scripts, stylesheets, etc. (workflowdocs).
+VERSION=2.2
+# Changes: revised the command used to move FITS xml files to metadata folder, in order to account for maximum argument limit (ARG_MAX = 2097152 bytes).
+# Filepath variables: give the absolute filepath for FITs, Saxon, and the scripts, stylesheets, etc. (workflowdocs).
 
 fits='insert-filepath'
 saxon='insert-filepath'
@@ -131,7 +130,8 @@ echo ""
 	     cp "$d"/*master.xml 'master-xml'
 	     mv "$d"/*master.xml "$d"/metadata
 	     mv "$d"/*_combined-fits.xml 'aip-fits-xml'
-	     mv "$d"/fits-output/* "$d"/metadata
+	     # Using "find + mv" command here instead to just "mv" to account for the possiblity that the number of arguments (based on total size of files to be moved) could exceed the maxmimum number of allowed for the process
+	     find "$d"/fits-output -type f -exec mv -t "$d"/metadata {} +
 	     rmdir "$d"/fits-output
 	     rm "$d"/*_cleaned-fits.xml
      fi	 
