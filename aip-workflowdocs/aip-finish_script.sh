@@ -17,9 +17,9 @@
    # Add optional metadata files to the metadata subfolders
    # If this is the first time using these scripts on this computer, update the filepath variables
 
-VERSION=2.1
-# changes: updated terminology from proto-aip (local term we used to describe AIPs in the process of being made) to AIP (standard term) and replaced absolute filepaths with variables to make it easier to run the script on other machines.
-
+VERSION=2.2
+# previous changes: updated terminology from proto-aip (local term we used to describe AIPs in the process of being made) to AIP (standard term) and replaced absolute filepaths with variables to make it easier to run the script on other machines.
+# changes: revised the command used to move FITS xml files to metdata folder, in order to account for maximum argument limit (ARG_MAX = 2097152 bytes)
 #Filepath variables: give the absolute filepath for FITs, Saxon, and the scripts, stylesheets, etc. (workflowdocs).
 
 fits='insert-filepath'
@@ -49,7 +49,7 @@ echo ""
 
   cd "$fits"  # FITS needs to run from its home directory
 
-  for d in "$1"/*; do 
+  for d in "$1"/*; do
     mkdir "$d"/fits-output
     fits-1.2.0/fits.sh -r -i "$d"/objects -o "$d"/fits-output
     mv "$d" "${d//_*/}"
@@ -62,7 +62,7 @@ echo ""
 echo "Generating master.xml files"
 echo ""
 
-  #1. Combine the FITS XML for each file of a AIP (located in the fits-output folder) into one valid XML file named aip-id_combined-fits.xml. 
+  #1. Combine the FITS XML for each file of a AIP (located in the fits-output folder) into one valid XML file named aip-id_combined-fits.xml.
   for d in *; do
     #cat (concatenate) combines files into a single file and egrep removes the XML declarations since each document had one and valid XML cannot have repeated XML declarations.
     cat "$d"/fits-output/*.fits.xml | egrep -v "xml version" > "$d"/body.xml
@@ -80,19 +80,19 @@ echo ""
   for d in *; do
     #tests if there is a single file: find "$d"/objects -type f finds all the files in each AIP's object folder and wc -l counts how many were found
     if [ $(find "$d"/objects -type f | wc -l) = 1 ]
-      then 
+      then
 	for i in "$d"/*_cleaned-fits.xml
 	  # dept="$2" is giving the stylesheet parameter dept the value of the second argument from running the script, which is hargrett or russell
 	  do java -cp "$saxon"/saxon9he.jar net.sf.saxon.Transform -s:"$i" -xsl:"$workflowdocs"/fits-to-master_singlefile.xsl -o:${i%_cleaned-fits.xml}_master.xml dept="$2"
-        done	
+        done
       else
 	for i in "$d"/*_cleaned-fits.xml
 	  do java -cp "$saxon"/saxon9he.jar net.sf.saxon.Transform -s:"$i" -xsl:"$workflowdocs"/fits-to-master_multifile.xsl -o:${i%_cleaned-fits.xml}_master.xml dept="$2"
-	done	
+	done
     fi
   done
-   
-# Validate master.xml file. If not valid, move the AIP folder to a new folder in the source directory called master-invalid. 
+
+# Validate master.xml file. If not valid, move the AIP folder to a new folder in the source directory called master-invalid.
 # The rest of the script is not run on AIPs with invalid master.xml files, saving the time of bagging, tarring, and zipping.
 echo ""
 echo "Validating master.xml files"
@@ -109,7 +109,7 @@ echo ""
         if [[ "$valid" == *"failed to load"* ]] || [[ "$valid" == *"fails to validate" ]]
 	  then mv "$d" master-invalid
 	fi
-    fi    
+    fi
    done
 
 # Organize metadata files: move some to metadata folder, copy some to additional folders for staff review (so not just in zip file), and delete temporary files
@@ -124,19 +124,20 @@ echo ""
    for i in */fits-output/*.fits.xml
      do mv "$i" "${i//.fits/_fits}"
    done
-   
+
    for d in *; do
      if [[ "$d" = "harg"* ]] || [[ "$d" = "rbrl"* ]]
        then
 	     cp "$d"/*master.xml 'master-xml'
 	     mv "$d"/*master.xml "$d"/metadata
 	     mv "$d"/*_combined-fits.xml 'aip-fits-xml'
-	     mv "$d"/fits-output/* "$d"/metadata
+       # Using "find + mv" command here instead to just "mv" to account for the possiblity that the number of arguments (based on total size of files to be moved) could exceed the maxmimum number of allowed for the process
+       find "$d"/fits-output -type f -exec mv -t "$d"/metadata {} +
 	     rmdir "$d"/fits-output
 	     rm "$d"/*_cleaned-fits.xml
-     fi	 
+     fi
    done
-   
+
 # Bag the AIPs, add _bag to the end of the folder name, and validate the bags
 # Invalid bags are moved to a new folder bag-not-valid in the source directory and will not be tar/zipped.
 echo ""
@@ -148,9 +149,9 @@ echo ""
       then
 	    bagit.py --md5 --sha256 --quiet "$d"
 	    mv "$d" "${d}_bag"
-    fi	 
+    fi
   done
-   
+
 echo ""
 echo "Validating the bags"
 echo ""
@@ -161,7 +162,7 @@ echo ""
     # 2>&1 means the variable stores the value of bagit's error output and the text it would have displayed in the terminal
     valid=$(( bagit.py --validate "$d" ) 2>&1)
     if [[ "$d" = "harg"* ]] || [[ "$d" = "rbrl"* ]]
-      then   
+      then
         if [[ "$valid" = *"_bag is invalid"* ]]
           then
             mv "$d" bag-not-valid
@@ -170,7 +171,7 @@ echo ""
   done
 
 # Tar and zip the AIPs using the prepare_bag script and save to new folder in the source directory called aips-to-ingest
-# As part of the script, the bags are renamed to include the uncompressed file size 
+# As part of the script, the bags are renamed to include the uncompressed file size
 echo ""
 echo "Packaging AIPs (tar and zip)"
 echo ""
@@ -181,7 +182,7 @@ echo ""
     if [[ "$d" = "harg"* ]] || [[ "$d" = "rbrl"* ]]
       then
         "$workflowdocs"/prepare_bag "$d" 'aips-to-ingest'
-    fi	 
+    fi
   done
 
 
